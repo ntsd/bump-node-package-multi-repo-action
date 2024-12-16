@@ -1,0 +1,109 @@
+name: "Bump Node Package Multiple Repositories Action"
+description: "Bump node package version to multiple giving repositories."
+author: "Jirawat Boonkumnerd <contact@ntsd.dev> (https://ntsd.dev)"
+branding:
+  icon: "package"
+  color: "blue"
+
+inputs:
+  package:
+    description: "Package and version to bump. eg, `@zero-hub/client@latest` or `@zero-hub/client@1.0.0`"
+    required: true
+  repositories:
+    description: "Repositories to bump, separate by comma. use postfix `@` to specify the branch to bump. use `:` to specify the path of the package. eg, `hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-meet:.`"
+    required: true
+  gh_token:
+    description: "Github token. Required when the destination repository is private."
+    required: false
+  package_manager:
+    description: "Package manager to use. only support `npm`, `yarn`, or `pnpm`."
+    required: false
+    default: "npm"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-node@v4
+    - name: bumps packages
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.gh_token }}
+      run: |
+        PACKAGE="${{ inputs.package }}"
+        BRANCH_NAME="chore/bump-$PACKAGE"
+        PACKAGE_MANAGER="${{ inputs.package_manager }}"
+        REPOSITORIES=$(echo "${{ inputs.repositories }}" | tr ',' ' ')
+        GH_USER="${{ github.actor }}"
+
+        # Setup the committers identity.
+        echo "setting up git user to $GH_USER"
+        git config --global user.email "$GH_USER@users.noreply.github.com"
+        git config --global user.name "$GH_USER"
+
+        # Determine the update command based on the package manager.
+        if [ "$PACKAGE_MANAGER" = "npm" ]; then
+            UPDATE_COMMAND="npm install $PACKAGE"
+        elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
+            UPDATE_COMMAND="yarn add $PACKAGE"
+        elif [ "$PACKAGE_MANAGER" = "pnpm" ]; then
+            UPDATE_COMMAND="pnpm add $PACKAGE"
+        else
+            echo "Invalid command"
+            exit 1
+        fi
+
+        if [ -z "${{ env.GITHUB_TOKEN }}" ]; then
+          GITHUB_HOST="https://github.com"
+        else
+          GITHUB_HOST="https://${{ env.GITHUB_TOKEN }}@github.com"
+        fi
+
+        for REPO_AND_BRANCH in $REPOSITORIES; do
+          REPO=$(echo $REPO_AND_BRANCH | cut -d'@' -f1)
+          BASE_BRANCH=$(echo $REPO_AND_BRANCH@ | cut -d'@' -f2)
+          EXTEND_PATH=$(echo $REPO_AND_BRANCH: | cut -d':' -f2)
+
+          echo "bumping $REPO branch $BASE_BRANCH"
+          FOLDER="bin/$REPO"
+
+          # Clone the remote repository and change working directory to the folder.
+          CLONE_COMMAND="git clone --single-branch --depth=1 $GITHUB_HOST/$REPO $FOLDER"
+          if [ -z "$BASE_BRANCH" ]; then
+            $CLONE_COMMAND
+          else
+            $CLONE_COMMAND --branch $BASE_BRANCH
+          fi
+
+          # Change working directory to the folder.
+          cd $FOLDER/$EXTEND_PATH
+
+          # check if remote branch exists
+          if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
+            echo "Branch $BRANCH_NAME already exists on remote, skipping..."
+            continue
+          fi
+
+          # Create a new feature branch for the changes.
+          git checkout -b $BRANCH_NAME
+
+          # Update the package.
+          $UPDATE_COMMAND
+
+          # Check if there are any changes to commit.
+          if ! git diff-index --quiet HEAD ./package.json; then
+              # Commit the changes.
+              git commit -am "chore: bump $PACKAGE"
+
+              # Push the changes to the remote repository.
+              git push --set-upstream origin $BRANCH_NAME
+
+              # Create a pull request.
+              if [ -z "$BASE_BRANCH" ]; then
+                gh pr create -H $BRANCH_NAME --title "chore: bump $PACKAGE" --body "bump $PACKAGE"
+              else
+                gh pr create -H $BRANCH_NAME --title "chore: bump $PACKAGE" --body "bump $PACKAGE" -B $BASE_BRANCH 
+              fi
+          else
+              echo "no changes to commit"
+          fi
+        done
