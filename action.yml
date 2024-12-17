@@ -49,6 +49,12 @@ runs:
           echo "bumping $REPO branch $BASE_BRANCH"
           FOLDER="bin/$REPO"
 
+          # check if remote branch exists
+          if git ls-remote --exit-code --heads $GITHUB_HOST/$REPO $BRANCH_NAME; then
+            echo "Branch `$BRANCH_NAME` already exists on remote `$GITHUB_HOST/$REPO`, skipping..."
+            continue
+          fi
+
           # Clone the remote repository and change working directory to the folder.
           CLONE_COMMAND="git clone --single-branch --depth=1 $GITHUB_HOST/$REPO $FOLDER"
           if [ -z "$BASE_BRANCH" ]; then
@@ -59,12 +65,6 @@ runs:
 
           # Change working directory to the folder.
           cd $FOLDER/$EXTEND_PATH
-
-          # check if remote branch exists
-          if git ls-remote --exit-code --heads origin $BRANCH_NAME; then
-            echo "Branch $BRANCH_NAME already exists on remote, skipping..."
-            continue
-          fi
 
           # Create a new feature branch for the changes.
           git checkout -b $BRANCH_NAME
