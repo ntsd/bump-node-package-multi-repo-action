@@ -1,15 +1,15 @@
 # Bump Node Package Multiple Repository Action
 
-A Github Action to bump node package version to multiple giving repositories.
+A GitHub Action to bump node package version to multiple giving repositories.
 
 ## Inputs
 
-| field           | description                                                                                                                                                                      | example                                                                                        |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| package         | Package and version to bump                                                                                                                                                      | @zero-hub/client@1.0.0                                                                         |
-| repositories    | Repositories to bump, separate by comma. use postfix `@` to specify the branch to bump. use `:` to specify the path of the package. eg, `username/repo@branch:./path_to_package` | hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-meet:. |
-| gh_token        | Github token. Required when the destination repository is private.                                                                                                               |                                                                                                |
-| package_manager | Package manager to use. only support `npm`, `yarn`, or `pnpm`.                                                                                                                   | npm                                                                                            |
+| field           | description                                                                                                                                                                                 | example                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| package         | `required` Package and version to bump                                                                                                                                                      | @zero-hub/client@1.0.0                                                                         |
+| repositories    | `required` Repositories to bump, separate by comma. use postfix `@` to specify the branch to bump. use `:` to specify the path of the package. eg, `username/repo@branch:./path_to_package` | hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-meet:. |
+| gh_token        | GitHub token. Required when the destination repository is private.                                                                                                                          |                                                                                                |
+| package_manager | Package manager to use. only support `npm`, `yarn`, or `pnpm`. (default: npm)                                                                                                               | npm                                                                                            |
 
 ## Examples Uses
 
@@ -42,6 +42,8 @@ jobs:
           gh_token: ${{ secrets.GITHUB_TOKEN }} # replace with your github token
           package_manager: "npm"
 ```
+
+> Because secrets.GITHUB_TOKEN not allow us to use the token for the other private repo, this should be replace with personal or organization GitHub Token. [Ref](https://github.com/orgs/community/discussions/46566)
 
 ### Use with Sematic Release
 
