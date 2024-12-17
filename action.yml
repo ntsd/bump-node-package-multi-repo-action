@@ -24,7 +24,6 @@ runs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ inputs.gh_token }}
-        GH_TOKEN: ${{ inputs.gh_token }} # temporary fix for gh cli
       run: |
         PACKAGE="${{ inputs.package }}"
         BRANCH_NAME="chore/bump-$PACKAGE"

@@ -37,7 +37,6 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - uses: actions/checkout@v2
       - uses: ntsd/bump-node-package-multi-repo-action@v1
         with:
           package: ${{ github.event.inputs.package }}
