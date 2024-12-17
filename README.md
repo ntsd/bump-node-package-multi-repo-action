@@ -2,14 +2,17 @@
 
 A GitHub Action to bump node package version to multiple giving repositories.
 
+Only support node package manager `npm`, `yarn`, or `pnpm`. determine by lock file `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`.
+
 ## Inputs
 
-| field           | description                                                                                                                                                                                 | example                                                                                        |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| package         | `required` Package and version to bump                                                                                                                                                      | @zero-hub/client@1.0.0                                                                         |
-| repositories    | `required` Repositories to bump, separate by comma. use postfix `@` to specify the branch to bump. use `:` to specify the path of the package. eg, `username/repo@branch:./path_to_package` | hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-meet:. |
-| gh_token        | GitHub token. Required when the destination repository is private.                                                                                                                          |                                                                                                |
-| package_manager | Package manager to use. only support `npm`, `yarn`, or `pnpm`. (default: npm)                                                                                                               | npm                                                                                            |
+| field        | description                                                                                                                                                                                 | example                                                                                        |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| package      | `required` Package and version to bump                                                                                                                                                      | @zero-hub/client@1.0.0                                                                         |
+| repositories | `required` Repositories to bump, separate by comma. use postfix `@` to specify the branch to bump. use `:` to specify the path of the package. eg, `username/repo@branch:./path_to_package` | hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-share@develop,hotcode-dev/zerohub-meet:. |
+| gh_token     | GitHub token. Required when the destination repository is private.                                                                                                                          |                                                                                                |
+
+|
 
 ## Examples Uses
 
@@ -40,7 +43,6 @@ jobs:
           package: ${{ github.event.inputs.package }}
           repositories: ${{ github.event.inputs.repositories }}
           gh_token: ${{ secrets.GITHUB_TOKEN }} # replace with your github token
-          package_manager: "npm"
 ```
 
 > Because secrets.GITHUB_TOKEN not allow us to use the token for the other private repo, this should be replace with personal or organization GitHub Token. [Ref](https://github.com/orgs/community/discussions/46566)
@@ -64,5 +66,4 @@ steps:
       package: your_package@${{ steps.semantic.outputs.new_release_version }}
       repositories: "user/repo,user/repo2"
       gh_token: ${{ secrets.GITHUB_TOKEN }}
-      package_manager: "npm"
 ```

@@ -15,10 +15,6 @@ inputs:
   gh_token:
     description: "Github token. Required when the destination repository is private."
     required: false
-  package_manager:
-    description: "Package manager to use. only support `npm`, `yarn`, or `pnpm`."
-    required: false
-    default: "npm"
 
 runs:
   using: "composite"
@@ -31,7 +27,6 @@ runs:
       run: |
         PACKAGE="${{ inputs.package }}"
         BRANCH_NAME="chore/bump-$PACKAGE"
-        PACKAGE_MANAGER="${{ inputs.package_manager }}"
         REPOSITORIES=$(echo "${{ inputs.repositories }}" | tr ',' ' ')
         GH_USER="${{ github.actor }}"
 
@@ -39,18 +34,6 @@ runs:
         echo "setting up git user to $GH_USER"
         git config --global user.email "$GH_USER@users.noreply.github.com"
         git config --global user.name "$GH_USER"
-
-        # Determine the update command based on the package manager.
-        if [ "$PACKAGE_MANAGER" = "npm" ]; then
-            UPDATE_COMMAND="npm install $PACKAGE"
-        elif [ "$PACKAGE_MANAGER" = "yarn" ]; then
-            UPDATE_COMMAND="yarn add $PACKAGE"
-        elif [ "$PACKAGE_MANAGER" = "pnpm" ]; then
-            UPDATE_COMMAND="pnpm add $PACKAGE"
-        else
-            echo "Invalid command"
-            exit 1
-        fi
 
         if [ -z "${{ env.GITHUB_TOKEN }}" ]; then
           GITHUB_HOST="https://github.com"
@@ -86,8 +69,17 @@ runs:
           # Create a new feature branch for the changes.
           git checkout -b $BRANCH_NAME
 
-          # Update the package.
-          $UPDATE_COMMAND
+          # Update command based on the package manager.
+          if [ -f "package-lock.json" ]; then
+              npm install $PACKAGE
+          elif [ -f "yarn.lock" ]; then
+              yarn add $PACKAGE
+          elif [ -f "pnpm-lock.yaml" ]; then
+              pnpm add $PACKAGE
+          else
+              echo "Package manager lockfile not found on the directory `$FOLDER/$EXTEND_PATH` on repository `$REPO`. Should have one of `package-lock.json`, `yarn.lock`, or `pnpm-lock.yaml`."
+              exit 1
+          fi
 
           # Check if there are any changes to commit.
           if ! git diff-index --quiet HEAD ./package.json; then
